@@ -1,17 +1,7 @@
-# Always prefer binary wheels to source builds
---prefer-binary
-
-# Core UI
+# requirements.txt  (safe on 3.11)
 streamlit==1.35.0
-
-# Data stack  (all have manylinux wheels)
-numpy==1.26.4
 pandas==2.1.4
+numpy==1.26.4
 openpyxl==3.1.2
-
-# Word document generation
 python-docx==1.1.0
-
-# Explicitly pin lxml to a small wheel; python-docx
-# depends on it and pip sometimes tries to build from source
 lxml==4.9.3
