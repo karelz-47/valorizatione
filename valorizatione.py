@@ -1,15 +1,20 @@
 # streamlit_insurance_letter.py
 """
 Streamlit app to generate a summary letter for insurance contract movements.
-Upload an XLS/XLSX file containing columns:
+Upload an XLS/XLSX file containing columns in one of two supported layouts:
 
+**1. Generic layout (original spec)**
 - Item date
 - Item name
 - Item value
 
-The app groups rows by **Item name**, sums **Item value**, translates each
-item name into another language (using a hard‑coded dictionary), and
-injects the results into a Word document letter ready to send to the client.
+**2. Novis export layout (real‑world file)**
+- EntryDate *or* ValueDate
+- EntryType
+- Amount
+
+The app automatically remaps the Novis column names to the generic names
+so that no manual changes are required.
 """
 
 # ---- Imports --------------------------------------------------------------
@@ -28,11 +33,23 @@ import streamlit.components.v1 as components
 # ╚══════════════════════════════════════════════════════════════════════╝
 
 TRANSLATION_MAP = {
-    # "Original Item Name": "Translated Item Name",
-    "Premium": "Poistné",
-    "Claim": "Škoda",
-    "Commission": "Provízia",
-    # ▸ Add more translations as needed …
+    # EntryType ➜ Italian category (ITA)
+    "Acquisition cost deduction from regular premium": "Costi di emissione e gestione",
+    "Risk deduction - Death": "Trattenuta copertura rischio morte",
+    "Administrative deduction": "Costi di caricamento",
+    "Investment deduction": "Costi di investimento",
+    "Contract fee deduction from regular premium": "Costi di emissione e gestione",
+    "Risk deduction - Waiver of premium": "Esonero dal Pagamento dei Premi in Caso di Invalidita’ Totale e Permanente (ITP)",
+    "Investment deduction from Regular Premium Balance": "Costi di investimento",
+    "Investment deduction from Single PremiumBalance": "Costi di investimento",
+    "Risk deduction - Illnesses and operations": "Trattenuta coperturarischio malattia, interventi chirurgici e assistenza",
+    "Risk deduction - accident insurance deduction": "Trattenuta copertura rischio infortunio",
+    "Acquisition cost deduction from single premium": "Costi di emissione e gestione",
+    "Contract fee deduction from single premium": "Costi di emissione e gestione",
+    "Investment return of Novis Loyalty Bonus": "Rendimento dell'investimento del Bonus Fedeltà NOVIS",
+    "Investment return from insurance funds": "Capitalizzazione",
+    "Paid Premium": "Pagamenti dei Premi identificati",
+    "NOVIS Special Bonus": "NOVIS Special Bonus",
 }
 
 LETTER_SUBJECT = "Statement of Account – Insurance Contract"
@@ -51,9 +68,53 @@ SIGNATURE_BLOCK = "Your Insurance Company\nInsurance Operations Team"
 #  END OF HARD‑CODED SECTION                                               
 # ──────────────────────────────────────────────────────────────────────────
 
+# Helper ▶ Column mapping for Novis export files
+COLUMN_ALIASES = {
+    #   Novis column          ▸ canonical column
+    "EntryDate": "Item date",        # we keep ValueDate as fallback
+    "ValueDate": "Item date",
+    "EntryType": "Item name",
+    "Amount": "Item value",
+}
+
+EXPECTED_COLS = {"Item date", "Item name", "Item value"}
+
+
+def standardise_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure the dataframe has the expected canonical column names.
+
+    If the file already contains *Item date*, *Item name*, *Item value* it is
+    returned unchanged. Otherwise the Novis‑specific names are remapped.
+    """
+    provided = set(df.columns)
+    if EXPECTED_COLS.issubset(provided):
+        return df  # already correct
+
+    # Attempt alias mapping
+    renamed = {}
+    for original, canonical in COLUMN_ALIASES.items():
+        if canonical not in provided and original in provided:
+            renamed[original] = canonical
+    if renamed:
+        df = df.rename(columns=renamed)
+        provided |= set(renamed.values())
+
+    if not EXPECTED_COLS.issubset(provided):
+        missing = ", ".join(EXPECTED_COLS - provided)
+        raise ValueError(
+            f"The uploaded file does not contain the required columns (or recognised aliases). Missing: {missing}."
+        )
+
+    return df
+
 
 def summarise_data(df: pd.DataFrame, translation: dict) -> pd.DataFrame:
-    """Group by *Item name*, sum *Item value*, and translate the item name."""
+    """Group by *Item name*, sum *Item value*, translate the item name."""
+
+    # Ensure correct dtypes
+    df["Item value"] = pd.to_numeric(df["Item value"], errors="coerce")
+    df = df.dropna(subset=["Item value"])  # remove rows with non‑numeric values
+
     summary = df.groupby("Item name", as_index=False)["Item value"].sum()
     summary["Item"] = summary["Item name"].map(translation).fillna(summary["Item name"])
     summary.rename(columns={"Item value": "Amount"}, inplace=True)
@@ -140,6 +201,12 @@ def doc_to_bytes(doc: Document) -> BytesIO:
     return buffer
 
 
+def missing_translations(summary_df: pd.DataFrame) -> list[str]:
+    """Return a list of original item names without a translation."""
+    untranslated_mask = ~summary_df["Item"].isin(TRANSLATION_MAP.values())
+    return summary_df.loc[untranslated_mask, "Item name"].tolist()
+
+
 def main() -> None:
     st.set_page_config(
         page_title="Insurance Letter Generator",
@@ -162,23 +229,29 @@ def main() -> None:
     if uploaded_file is not None:
         # Validate & preview data
         try:
-            df = pd.read_excel(uploaded_file)
+            raw_df = pd.read_excel(uploaded_file)
         except Exception as err:
             st.error(f"❌ Could not read the file: {err}")
             st.stop()
 
-        expected_cols = {"Item date", "Item name", "Item value"}
-        if not expected_cols.issubset(df.columns):
-            st.error(
-                "❌ The uploaded file must contain the columns: "
-                + ", ".join(expected_cols)
-            )
+        try:
+            df = standardise_columns(raw_df)
+        except ValueError as e:
+            st.error(f"❌ {e}")
             st.stop()
 
         summary_df = summarise_data(df, TRANSLATION_MAP)
 
         st.subheader("Summarised Movements (translated)")
         st.dataframe(summary_df, use_container_width=True)
+
+        # 🔍 Report untranslated items (if any)
+        unmapped = missing_translations(summary_df)
+        if unmapped:
+            st.warning(
+                "The following item names have no translation and will appear "
+                f"unchanged in the letter: {', '.join(unmapped)}"
+            )
 
         # Generate letter once mandatory fields are filled
         if all([client_name, contract_number, client_address]):
@@ -194,7 +267,7 @@ def main() -> None:
             st.subheader("Letter Preview & Copy")
             html_block = f"""
             <textarea id=\"letterArea\" style=\"width:100%;height:260px;\">{letter_txt}</textarea><br>
-            <button style=\"margin-top:6px;padding:6px 12px;font-size:14px;\" onclick=\"navigator.clipboard.writeText(document.getElementById('letterArea').value)\">📋 Copy Letter</button>
+            <button style=\"margin-top:6px;padding:6px 12px;font-size:14px;\" onclick=\"navigator.clipboard.writeText(document.getElementById('letterArea').value)\">📋 Copy Letter</button>
             """
             components.html(html_block, height=320)
 
