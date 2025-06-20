@@ -1,10 +1,17 @@
-# Web UI
-streamlit==1.35.0          # latest tested on Streamlit Cloud
+# Always prefer binary wheels to source builds
+--prefer-binary
 
-# Data handling
-pandas==2.2.1
-openpyxl==3.1.2            # XLS/XLSX parsing
+# Core UI
+streamlit==1.35.0
 
-# Word-doc generation → needs lxml underneath
+# Data stack  (all have manylinux wheels)
+numpy==1.26.4
+pandas==2.1.4
+openpyxl==3.1.2
+
+# Word document generation
 python-docx==1.1.0
-lxml==5.2.1                # pin explicitly so we grab the pre-built wheel
+
+# Explicitly pin lxml to a small wheel; python-docx
+# depends on it and pip sometimes tries to build from source
+lxml==4.9.3
