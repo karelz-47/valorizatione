@@ -1,1 +1,10 @@
-text\nstreamlit>=1.35\npandas>=2.2\npython-docx>=1.1\nopenpyxl>=3.1\n
+# Web UI
+streamlit==1.35.0          # latest tested on Streamlit Cloud
+
+# Data handling
+pandas==2.2.1
+openpyxl==3.1.2            # XLS/XLSX parsing
+
+# Word-doc generation → needs lxml underneath
+python-docx==1.1.0
+lxml==5.2.1                # pin explicitly so we grab the pre-built wheel
