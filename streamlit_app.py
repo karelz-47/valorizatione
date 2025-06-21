@@ -54,18 +54,24 @@ TRANSLATION_MAP = {
     "NOVIS Special Bonus": "NOVIS Special Bonus",
 }
 
-LETTER_SUBJECT = "Statement of Account – Insurance Contract"
+LETTER_SUBJECT = "Dettaglio costi della Sua posizione assicurativa"
 
 LETTER_BODY_HEADER = (
-    "Dear {client_name},\n\n"
-    "Please find below the statement of movements on your insurance contract "
-    "number {contract_number}."
+    "Egregio/a {client_name},"
+    "siamo con la presente a trasmetterLe la tabella riportante il dettaglio dei costi "
+    "applicati ai fini di calcolo del valore della Sua posizione assicurativa "
+    "relativa alla polizza n. {contract_number}."
 )
 
-GOODBYE_LINE = "Sincerely,"
+GOODBYE_LINE = "Cordiali saluti,"
 
-SIGNATURE_BLOCK = "Your Insurance Company\nInsurance Operations Team"
-
+SIGNATURE_BLOCK = (
+    "Il team NOVIS"
+    "NOVIS Insurance Company,"
+    "NOVIS Versicherungsgesellschaft,"
+    "NOVIS Compagnia di Assicurazioni,"
+    "NOVIS Poisťovňa a.s."
+)
 # ──────────────────────────────────────────────────────────────────────────
 #  END OF HARD‑CODED SECTION                                                
 # ──────────────────────────────────────────────────────────────────────────
