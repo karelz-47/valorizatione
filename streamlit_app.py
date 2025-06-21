@@ -57,7 +57,7 @@ TRANSLATION_MAP = {
 LETTER_SUBJECT = "Dettaglio costi della Sua posizione assicurativa"
 
 LETTER_BODY_HEADER = (
-    "Egregio/a {client_name},"
+    "Egregio/a {client_name}, "
     "siamo con la presente a trasmetterLe la tabella riportante il dettaglio dei costi "
     "applicati ai fini di calcolo del valore della Sua posizione assicurativa "
     "relativa alla polizza n. {contract_number}."
@@ -66,10 +66,10 @@ LETTER_BODY_HEADER = (
 GOODBYE_LINE = "Cordiali saluti,"
 
 SIGNATURE_BLOCK = (
-    "Il team NOVIS"
-    "NOVIS Insurance Company,"
-    "NOVIS Versicherungsgesellschaft,"
-    "NOVIS Compagnia di Assicurazioni,"
+    "Il team NOVIS \n"
+    "NOVIS Insurance Company, \n"
+    "NOVIS Versicherungsgesellschaft, \n"
+    "NOVIS Compagnia di Assicurazioni, \n"
     "NOVIS Poisťovňa a.s."
 )
 # ──────────────────────────────────────────────────────────────────────────
