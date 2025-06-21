@@ -49,6 +49,8 @@ TRANSLATION_MAP = {
     "Investment return of Novis Loyalty Bonus": "Rendimento dell'investimento del Bonus Fedeltà NOVIS",
     "Investment return from insurance funds": "Capitalizzazione",
     "Paid Premium": "Pagamenti dei Premi identificati",
+    "Returned Premium": "Pagamenti dei Premi identificati",
+    "NOVIS Loyalty Bonus": "Bonus Fedeltà",
     "NOVIS Special Bonus": "NOVIS Special Bonus",
 }
 
