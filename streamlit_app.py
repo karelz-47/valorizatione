@@ -1,195 +1,255 @@
 # streamlit_insurance_letter.py
 """
 Streamlit app to generate a summary letter for insurance contract movements.
-Upload an XLS/XLSX file containing columns in one of two supported layouts:
 
-**1. Generic layout (original spec)**
-- Item date
-- Item name
-- Item value
-
-**2. Novis export layout (real‑world file)**
-- EntryDate *or* ValueDate
-- EntryType
-- Amount
-
-The app automatically remaps the Novis column names to the generic names
-so that no manual changes are required.
+Key features now supported
+--------------------------
+▶ Multiple input fields (codice fiscale, calculation date) that flow into the
+  subject and intro lines.
+▶ Translation map extended with **table id** → items that share a table id are
+  aggregated into the *same* table.
+▶ Tables can opt‑in/out of an automatic **Total** row (`include_total`).
+▶ Amounts formatted as Italian‑locale Euro values (e.g. 24.300,45 €).
 """
 
 # ---- Imports --------------------------------------------------------------
-import streamlit as st
-import pandas as pd
+import locale
 from datetime import date
 from io import BytesIO
-from docx import Document
+
+import pandas as pd
+import streamlit as st
 import streamlit.components.v1 as components
+from babel.numbers import format_currency
+from docx import Document
+
+# ---------------------------------------------------------------------------
+#  ITALIAN LOCALE FOR CURRENCY FORMATTING
+# ---------------------------------------------------------------------------
+try:
+    locale.setlocale(locale.LC_ALL, "it_IT.utf8")
+except locale.Error:
+    # fallback so babel still works; streamlit cloud may not have the locale installed
+    pass
 
 
 # ╔══════════════════════════════════════════════════════════════════════╗
 # ║  HARD‑CODED CONFIGURATION                                            ║
-# ║  ▸ Edit the values in this block to localise the app                 ║
-# ║    (translations, letter subject/body, sign‑off, etc.).              ║
 # ╚══════════════════════════════════════════════════════════════════════╝
 
-TRANSLATION_MAP = {
-    # EntryType ➜ Italian category (ITA)
-    "Acquisition cost deduction from regular premium": "Costi di emissione e gestione",
-    "Risk deduction - Death": "Trattenuta copertura rischio morte",
-    "Administrative deduction": "Costi di caricamento",
-    "Investment deduction": "Costi di investimento",
-    "Contract fee deduction from regular premium": "Costi di emissione e gestione",
-    "Risk deduction - Waiver of premium": "Esonero dal Pagamento dei Premi in Caso di Invalidita’ Totale e Permanente (ITP)",
-    "Investment deduction from Regular Premium Balance": "Costi di investimento",
-    "Investment deduction from Single PremiumBalance": "Costi di investimento",
-    "Risk deduction - Illnesses and operations": "Trattenuta coperturarischio malattia, interventi chirurgici e assistenza",
-    "Risk deduction - accident insurance deduction": "Trattenuta copertura rischio infortunio",
-    "Acquisition cost deduction from single premium": "Costi di emissione e gestione",
-    "Contract fee deduction from single premium": "Costi di emissione e gestione",
-    "Investment return of Novis Loyalty Bonus": "Rendimento dell'investimento del Bonus Fedeltà NOVIS",
-    "Investment return from insurance funds": "Capitalizzazione",
-    "Paid Premium": "Pagamenti dei Premi identificati",
-    "Returned Premium": "Pagamenti dei Premi identificati",
-    "NOVIS Loyalty Bonus": "Bonus Fedeltà",
-    "NOVIS Special Bonus": "NOVIS Special Bonus",
+# Per‑item configuration: label (ITA) + table id
+ITEM_CONFIG = {
+    "Acquisition cost deduction from regular premium": {
+        "label": "Costi di emissione e gestione",
+        "table": "T1",
+    },
+    "Contract fee deduction from regular premium": {
+        "label": "Costi di emissione e gestione",
+        "table": "T1",
+    },
+    "Acquisition cost deduction from single premium": {
+        "label": "Costi di emissione e gestione",
+        "table": "T1",
+    },
+    "Contract fee deduction from single premium": {
+        "label": "Costi di emissione e gestione",
+        "table": "T1",
+    },
+
+    "Administrative deduction": {
+        "label": "Costi di caricamento",
+        "table": "T2",
+    },
+
+    "Investment deduction": {
+        "label": "Costi di investimento",
+        "table": "T3",
+    },
+    "Investment deduction from Regular Premium Balance": {
+        "label": "Costi di investimento",
+        "table": "T3",
+    },
+    "Investment deduction from Single PremiumBalance": {
+        "label": "Costi di investimento",
+        "table": "T3",
+    },
+
+    "Risk deduction - Death": {
+        "label": "Trattenuta copertura rischio morte",
+        "table": "T4",
+    },
+    "Risk deduction - Waiver of premium": {
+        "label": "Esonero Pagamento Premi ITP",
+        "table": "T4",
+    },
+    "Risk deduction - Illnesses and operations": {
+        "label": "Trattenuta rischio malattia / interventi",
+        "table": "T4",
+    },
+    "Risk deduction - accident insurance deduction": {
+        "label": "Trattenuta copertura rischio infortunio",
+        "table": "T4",
+    },
+
+    "Investment return of Novis Loyalty Bonus": {
+        "label": "Rendimento Bonus Fedeltà NOVIS",
+        "table": "T5",
+    },
+    "Investment return from insurance funds": {
+        "label": "Capitalizzazione",
+        "table": "T5",
+    },
+    "NOVIS Special Bonus": {
+        "label": "NOVIS Special Bonus",
+        "table": "T5",
+    },
+
+    "Paid Premium": {
+        "label": "Pagamenti dei Premi identificati",
+        "table": "T6",
+    },
 }
 
-LETTER_SUBJECT = "Dettaglio costi della Sua posizione assicurativa"
+# Per‑table configuration: title + whether a Total row is appended + its label
+TABLE_CONFIG = {
+    "T1": {"title": "Costi di emissione e gestione", "include_total": True, "total_label": "Totale costi di emissione e gestione"},
+    "T2": {"title": "Costi di caricamento", "include_total": True, "total_label": "Totale costi di caricamento"},
+    "T3": {"title": "Costi di investimento", "include_total": True, "total_label": "Totale costi di investimento"},
+    "T4": {"title": "Trattenute di rischio", "include_total": True, "total_label": "Totale trattenute di rischio"},
+    "T5": {"title": "Rendimenti / Bonus", "include_total": False},
+    "T6": {"title": "Premi versati", "include_total": False},
+}
 
-LETTER_BODY_HEADER = (
-    "Egregio/a {client_name}, "
-    "siamo con la presente a trasmetterLe la tabella riportante il dettaglio dei costi "
-    "applicati ai fini di calcolo del valore della Sua posizione assicurativa "
-    "relativa alla polizza n. {contract_number}."
+# ── Letter text blocks ─────────────────────────────────────────────────
+LETTER_SUBJECT_TPL = (
+    "Dettaglio costi per il valore della Sua posizione assicurativa polizza n. "
+    "{contract_number} al {calc_date} con codice fiscale {cf}."
+)
+
+LETTER_BODY_HEADER_TPL = (
+    "Egregio/a {client_name},\n\n"
+    "siamo con la presente a trasmetterLe di seguito la tabella riportante il "
+    "dettaglio dei costi applicati ai fini di calcolo del valore della Sua "
+    "posizione assicurativa al {calc_date}."
+)
+
+OUTRO_PARAGRAPH = (
+    "Qualora necessitasse di ulteriori informazioni in merito, La invitiamo "
+    "gentilmente a riferirsi alla Tabella Costi contenuta nelle Condizioni di "
+    "Assicurazione.\n\n"
+    "Rimaniamo a disposizione per qualsiasi chiarimento e, ringraziando per la "
+    "cortese attenzione, Le porgiamo i nostri più cordiali saluti."
 )
 
 GOODBYE_LINE = "Cordiali saluti,"
 
 SIGNATURE_BLOCK = (
-    "Il team NOVIS \n"
-    "NOVIS Insurance Company, \n"
-    "NOVIS Versicherungsgesellschaft, \n"
-    "NOVIS Compagnia di Assicurazioni, \n"
+    "Il team NOVIS\n\n"
+    "NOVIS Insurance Company,\n"
+    "NOVIS Versicherungsgesellschaft,\n"
+    "NOVIS Compagnia di Assicurazioni,\n"
     "NOVIS Poisťovňa a.s."
 )
-# ──────────────────────────────────────────────────────────────────────────
-#  END OF HARD‑CODED SECTION                                                
-# ──────────────────────────────────────────────────────────────────────────
 
-# Helper ▶ Column mapping for Novis export files
+# ---------------------------------------------------------------------------
+#  COLUMN HANDLING FOR NOVIS EXPORT
+# ---------------------------------------------------------------------------
 COLUMN_ALIASES = {
-    #   Novis column          ▸ canonical column
-    "EntryDate": "Item date",        # we keep ValueDate as fallback
+    "EntryDate": "Item date",
     "ValueDate": "Item date",
     "EntryType": "Item name",
     "Amount": "Item value",
 }
-
 EXPECTED_COLS = {"Item date", "Item name", "Item value"}
 
 
 def standardise_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Ensure the dataframe has the expected canonical column names."""
     provided = set(df.columns)
     if EXPECTED_COLS.issubset(provided):
         return df
-
-    renamed = {
-        original: canonical
-        for original, canonical in COLUMN_ALIASES.items()
-        if canonical not in provided and original in provided
-    }
-    if renamed:
-        df = df.rename(columns=renamed)
-        provided |= set(renamed.values())
-
-    if not EXPECTED_COLS.issubset(provided):
-        missing = ", ".join(EXPECTED_COLS - provided)
-        raise ValueError(
-            "The uploaded file does not contain the required columns (or recognised "
-            f"aliases). Missing: {missing}."
-        )
+    df = df.rename({k: v for k, v in COLUMN_ALIASES.items() if k in df.columns}, axis=1)
+    provided = set(df.columns)
+    missing = EXPECTED_COLS - provided
+    if missing:
+        raise ValueError(f"File privo delle colonne richieste: {', '.join(missing)}")
     return df
 
+# ---------------------------------------------------------------------------
+#  DATA AGGREGATION / TABLE SPLIT                                            
+# ---------------------------------------------------------------------------
 
-# ──────────────────────────────────────────────────────────────────────────
-#  DATA AGGREGATION LOGIC                                                   
-# ──────────────────────────────────────────────────────────────────────────
-
-def summarise_data(df: pd.DataFrame, translation: dict) -> tuple[pd.DataFrame, list[str]]:
-    """Return (summary_df, untranslated_original_items).
-
-    Steps:
-    1️⃣ Ensure *Item value* numeric
-    2️⃣ Sum at original *Item name* level
-    3️⃣ Map each original name to translation → new col *Item*
-    4️⃣ Re‑aggregate by *Item* (translation) to collapse duplicates
-    """
-
+def aggregate_by_table(df: pd.DataFrame):
+    """Return dict {table_id: DataFrame} already summed & labelled."""
     df["Item value"] = pd.to_numeric(df["Item value"], errors="coerce")
-    df = df.dropna(subset=["Item value"])  # safely remove non‑numeric rows
+    df = df.dropna(subset=["Item value"])
 
-    # First‑level sum by original wording
-    level1 = df.groupby("Item name", as_index=False)["Item value"].sum()
+    # Map to label & table id
+    df["Label"] = df["Item name"].map(lambda x: ITEM_CONFIG.get(x, {}).get("label", x))
+    df["Table"] = df["Item name"].map(lambda x: ITEM_CONFIG.get(x, {}).get("table", "ALT"))
 
-    # Map translation; keep original alongside
-    level1["Item"] = level1["Item name"].map(translation).fillna(level1["Item name"])
-
-    # Second‑level sum by translated label
-    summary = (
-        level1.groupby("Item", as_index=False)["Item value"].sum()
+    grouped = (
+        df.groupby(["Table", "Label"], as_index=False)["Item value"].sum()
         .rename(columns={"Item value": "Amount"})
     )
 
-    # Detect which originals lacked translation
-    untranslated = level1.loc[level1["Item"] == level1["Item name"], "Item name"].unique().tolist()
+    # Split per table id
+    tables: dict[str, pd.DataFrame] = {}
+    for tbl_id, sub in grouped.groupby("Table"):
+        # order rows by label for readability
+        tables[tbl_id] = sub.drop(columns="Table").sort_values("Label")
+    return tables
 
-    return summary, untranslated
+# ---------------------------------------------------------------------------
+#  LETTER BUILDERS                                                           
+# ---------------------------------------------------------------------------
 
-
-def build_letter_text(
-    client_name: str,
-    client_address: str,
-    letter_date: date,
-    contract_number: str,
-    summary: pd.DataFrame,
-) -> str:
-    lines: list[str] = []
-    lines.extend([client_name, client_address, "", letter_date.strftime("%d %B %Y"), "", LETTER_SUBJECT, ""])
-    lines.append(
-        LETTER_BODY_HEADER.format(client_name=client_name, contract_number=contract_number)
-    )
-    lines.append("")
-    lines.append(summary.to_string(index=False, header=True))
-    lines.extend(["", GOODBYE_LINE, "", SIGNATURE_BLOCK])
-    return "\n".join(lines)
+def _fmt(amount: float) -> str:
+    return format_currency(amount, "EUR", locale="it_IT")
 
 
 def build_letter_doc(
     client_name: str,
     client_address: str,
-    letter_date: date,
     contract_number: str,
-    summary: pd.DataFrame,
+    codice_fiscale: str,
+    calc_date: str,
+    tables: dict[str, pd.DataFrame],
 ) -> Document:
     doc = Document()
-    # address & heading
-    for part in (client_name, client_address, "", letter_date.strftime("%d %B %Y"), ""):
-        doc.add_paragraph(part)
-    doc.add_paragraph(LETTER_SUBJECT).style = "Heading 2"
-    doc.add_paragraph("")
+
+    # heading
+    for p in (client_name, client_address, "", date.today().strftime("%d/%m/%Y"), ""):
+        doc.add_paragraph(p)
+
     doc.add_paragraph(
-        LETTER_BODY_HEADER.format(client_name=client_name, contract_number=contract_number)
+        LETTER_SUBJECT_TPL.format(contract_number=contract_number, calc_date=calc_date, cf=codice_fiscale)
+    ).style = "Heading 2"
+    doc.add_paragraph("")
+
+    doc.add_paragraph(
+        LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date)
     )
 
-    table = doc.add_table(rows=1, cols=2)
-    table.rows[0].cells[0].text = "Item"
-    table.rows[0].cells[1].text = "Amount"
-    for _, row in summary.iterrows():
-        c1, c2 = table.add_row().cells
-        c1.text = str(row["Item"])
-        c2.text = f"{row['Amount']:.2f}"
+    # iterate over logical tables
+    for tbl_id, df in tables.items():
+        cfg = TABLE_CONFIG.get(tbl_id, {"title": tbl_id, "include_total": False})
+        doc.add_paragraph(cfg["title"]).style = "Heading 3"
+        t = doc.add_table(rows=1, cols=2)
+        t.rows[0].cells[0].text = "Item"
+        t.rows[0].cells[1].text = "Importo"
+        for _, row in df.iterrows():
+            c1, c2 = t.add_row().cells
+            c1.text = row["Label"]
+            c2.text = _fmt(row["Amount"])
+        if cfg.get("include_total"):
+            tot = df["Amount"].sum()
+            c1, c2 = t.add_row().cells
+            c1.text = cfg.get("total_label", "Totale")
+            c2.text = _fmt(tot)
+        doc.add_paragraph("")
 
+    # outro
+    doc.add_paragraph(OUTRO_PARAGRAPH)
     doc.add_paragraph("")
     doc.add_paragraph(GOODBYE_LINE)
     doc.add_paragraph("")
@@ -203,82 +263,61 @@ def doc_to_bytes(doc: Document) -> BytesIO:
     buf.seek(0)
     return buf
 
-# ──────────────────────────────────────────────────────────────────────────
-#  STREAMLIT FRONT END                                                      
-# ──────────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+#  STREAMLIT APP                                                             
+# ---------------------------------------------------------------------------
 
-def main() -> None:
+def main():
     st.set_page_config(page_title="Insurance Letter Generator", layout="centered")
-    st.title("📄 Insurance Contract Letter Generator")
+    st.title("📄 Generatore Lettera Valorizzazione")
 
-    uploaded_file = st.file_uploader(
-        "Upload XLS/XLSX file with movements", type=["xls", "xlsx"]
-    )
+    file = st.file_uploader("Carica file XLS/XLSX movimenti", type=["xls", "xlsx"])
 
-    st.subheader("Client Information")
-    client_name = st.text_input("Client Name")
-    contract_number = st.text_input("Contract Number")
-    client_address = st.text_area("Client Address")
-    letter_date = st.date_input("Letter Date", value=date.today())
+    st.subheader("Dati cliente")
+    client_name = st.text_input("Nome del cliente")
+    contract_number = st.text_input("Numero polizza")
+    client_address = st.text_area("Indirizzo cliente")
+    codice_fiscale = st.text_input("Codice fiscale")
+    calc_date = st.date_input("Data valorizzazione", value=date.today()).strftime("%d/%m/%Y")
 
-    if uploaded_file is not None:
+    if file is not None:
         try:
-            raw_df = pd.read_excel(uploaded_file)
-        except Exception as err:
-            st.error(f"❌ Could not read the file: {err}")
+            df_raw = pd.read_excel(file)
+            df = standardise_columns(df_raw)
+        except Exception as e:
+            st.error(f"Errore lettura file: {e}")
             st.stop()
 
-        try:
-            df = standardise_columns(raw_df)
-        except ValueError as e:
-            st.error(f"❌ {e}")
-            st.stop()
+        tables = aggregate_by_table(df)
 
-        summary_df, untranslated = summarise_data(df, TRANSLATION_MAP)
-
-        st.subheader("Summarised Movements (translated & aggregated)")
-        st.dataframe(summary_df, use_container_width=True)
-
-        if untranslated:
-            st.warning(
-                "These item types have no translation and appear as‑is in the table: "
-                + ", ".join(untranslated)
+        st.subheader("Anteprima tabelle")
+        for tbl_id, df_tbl in tables.items():
+            cfg = TABLE_CONFIG.get(tbl_id, {"title": tbl_id})
+            st.markdown(f"### {cfg['title']}")
+            st.dataframe(
+                df_tbl.assign(Importo=df_tbl["Amount"].apply(_fmt)).drop(columns="Amount"),
+                use_container_width=True,
             )
+            if cfg.get("include_total"):
+                st.markdown(f"**{cfg.get('total_label', 'Totale')}: {_fmt(df_tbl['Amount'].sum())}**")
 
-        if all([client_name, contract_number, client_address]):
-            letter_txt = build_letter_text(
+        if all([client_name, contract_number, client_address, codice_fiscale]):
+            doc = build_letter_doc(
                 client_name,
                 client_address,
-                letter_date,
                 contract_number,
-                summary_df,
+                codice_fiscale,
+                calc_date,
+                tables,
             )
-
-            st.subheader("Letter Preview & Copy")
-            components.html(
-                f"""
-                <textarea id='letterArea' style='width:100%;height:260px;'>{letter_txt}</textarea><br>
-                <button style='margin-top:6px;padding:6px 12px;font-size:14px;' onclick="navigator.clipboard.writeText(document.getElementById('letterArea').value)">📋 Copy Letter</button>
-                """,
-                height=320,
-            )
-
             st.download_button(
-                label="⬇️ Download Word Document",
-                data=doc_to_bytes(
-                    build_letter_doc(
-                        client_name,
-                        client_address,
-                        letter_date,
-                        contract_number,
-                        summary_df,
-                    )
-                ),
+                "⬇️ Scarica Word",
+                data=doc_to_bytes(doc),
                 file_name=f"Valorizzazione_dettagliata_polizza_{contract_number}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             )
         else:
-            st.info("ℹ️ Fill in all client details to generate the letter.")
+            st.info("Compila tutti i campi del cliente per poter generare la lettera.")
 
 
 if __name__ == "__main__":
