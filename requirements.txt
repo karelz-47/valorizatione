@@ -1,7 +1,10 @@
 # requirements.txt  (safe on 3.11)
+
+babel==2.14.0          # ← new line
 streamlit==1.35.0
-pandas==2.1.4
 numpy==1.26.4
+pandas==2.1.4
 openpyxl==3.1.2
 python-docx==1.1.0
 lxml==4.9.3
+xlrd==1.2.0            # only if you kept .xls support
