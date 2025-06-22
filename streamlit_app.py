@@ -233,7 +233,7 @@ def main():
                 data=doc_to_bytes(doc),
                 file_name=f"Valorizzazione_dettagliata_polizza_{contract}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-             )) or BytesIO()).getvalue(),
+             ) or BytesIO()).getvalue(),
                 file_name=f"Valorizzazione_dettagliata_polizza_{contract}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             )
