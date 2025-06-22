@@ -228,12 +228,15 @@ def main():
 
         if all([name, addr, cf, contract]):
             doc = build_doc(name, addr, cf, contract, calc_date, tables)
-             st.download_button(
-              "⬇️ Scarica Word",
-              data=doc_to_bytes(doc),
-              file_name=f"Valorizzazione_dettagliata_polizza_{contract}.docx",
-              mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-              )
+            st.download_button(
+                "⬇️ Scarica Word",
+                data=doc_to_bytes(doc),
+                file_name=f"Valorizzazione_dettagliata_polizza_{contract}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+             )) or BytesIO()).getvalue(),
+                file_name=f"Valorizzazione_dettagliata_polizza_{contract}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
         else:
             st.info("Compila tutti i campi cliente per generare la lettera.")
 
