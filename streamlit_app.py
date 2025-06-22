@@ -58,63 +58,63 @@ ITEM_CONFIG = {
 
     "Administrative deduction": {
         "label": "Costi di caricamento",
-        "table": "T2",
+        "table": "T1",
     },
 
     "Investment deduction": {
         "label": "Costi di investimento",
-        "table": "T3",
+        "table": "T1",
     },
     "Investment deduction from Regular Premium Balance": {
         "label": "Costi di investimento",
-        "table": "T3",
+        "table": "T1",
     },
     "Investment deduction from Single PremiumBalance": {
         "label": "Costi di investimento",
-        "table": "T3",
+        "table": "T1",
     },
 
     "Risk deduction - Death": {
         "label": "Trattenuta copertura rischio morte",
-        "table": "T4",
+        "table": "T1",
     },
     "Risk deduction - Waiver of premium": {
         "label": "Esonero Pagamento Premi ITP",
-        "table": "T4",
+        "table": "T1",
     },
     "Risk deduction - Illnesses and operations": {
         "label": "Trattenuta rischio malattia / interventi",
-        "table": "T4",
+        "table": "T1",
     },
     "Risk deduction - accident insurance deduction": {
         "label": "Trattenuta copertura rischio infortunio",
-        "table": "T4",
+        "table": "T1",
     },
 
     "Investment return of Novis Loyalty Bonus": {
         "label": "Rendimento Bonus Fedeltà NOVIS",
-        "table": "T5",
+        "table": "T2",
     },
     "Investment return from insurance funds": {
         "label": "Capitalizzazione",
-        "table": "T5",
+        "table": "T1",
     },
     "NOVIS Special Bonus": {
         "label": "NOVIS Special Bonus",
-        "table": "T5",
+        "table": "T3",
     },
 
     "Paid Premium": {
         "label": "Pagamenti dei Premi identificati",
-        "table": "T6",
+        "table": "T1",
     },
 }
 
 # Per‑table configuration: title + whether a Total row is appended + its label
 TABLE_CONFIG = {
-    "T1": {"title": "Costi di emissione e gestione", "include_total": True, "total_label": "Totale costi di emissione e gestione"},
-    "T2": {"title": "Costi di caricamento", "include_total": True, "total_label": "Totale costi di caricamento"},
-    "T3": {"title": "Costi di investimento", "include_total": True, "total_label": "Totale costi di investimento"},
+    "T1": {"title": "", "include_total": True, "total_label": "Somma totale (escluso Bonus Fedeltà NOVIS e Special Bonus)"},
+    "T2": {"title": "", "include_total": True, "total_label": "Bonus Fedeltà NOVIS con rendimento"},
+    "T3": {"title": "", "include_total": False, "total_label": "Totale costi di investimento"},
     "T4": {"title": "Trattenute di rischio", "include_total": True, "total_label": "Totale trattenute di rischio"},
     "T5": {"title": "Rendimenti / Bonus", "include_total": False},
     "T6": {"title": "Premi versati", "include_total": False},
