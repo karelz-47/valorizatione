@@ -126,6 +126,12 @@ def aggregate_tables(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
         tables[tid] = g.drop(columns="Table").sort_values("Label")
     return tables
 
+def doc_to_bytes(doc: Document) -> bytes:
+    buf = BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
 # -------------------------------------------------------------------------
 #  DOCX BUILDER
 # -------------------------------------------------------------------------
@@ -222,11 +228,11 @@ def main():
 
         if all([name, addr, cf, contract]):
             doc = build_doc(name, addr, cf, contract, calc_date, tables)
-            st.download_button(
-                "⬇️ Scarica Word",
-                data=lambda: BytesIO(doc.save(BytesIO()) or BytesIO()).getvalue(),
-                file_name=f"Valorizzazione_dettagliata_polizza_{contract}.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+           st.download_button(
+              "⬇️ Scarica Word",
+              data=doc_to_bytes(doc),
+              file_name=f"Valorizzazione_dettagliata_polizza_{contract}.docx",
+              mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             )
         else:
             st.info("Compila tutti i campi cliente per generare la lettera.")
