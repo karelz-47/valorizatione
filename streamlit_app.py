@@ -238,6 +238,13 @@ def _safe_style(paragraph, style_name: str):
         # template lacks the style – skip silently
         pass
 
+def _safe_table_style(table, style_name: str):
+    """Apply a table style if it exists in the template."""
+    try:
+        table.style = style_name
+    except KeyError:
+        pass   # fall back to default table formatting
+
 
 # -------------------------------------------------------------------------
 #  DOCX BUILDER
@@ -297,8 +304,8 @@ def build_doc(
       
         header = bool(cfg["title"])
         rows = 1 if header else 0
-        tbl = doc.add_table(rows=rows, cols=2, style="Table Grid")   # ▸ borders
-
+        tbl = doc.add_table(rows=rows, cols=2)   # create table
+        _safe_table_style(tbl, "Table Grid")     # apply style only if it exists
         if header:
             tbl.rows[0].cells[0].text = "Item"
             hdr_imp = tbl.rows[0].cells[1]
