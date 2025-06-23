@@ -300,14 +300,14 @@ def build_doc(
     )
     para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     
-  _safe_style(
+    _safe_style(
       doc.add_paragraph(
         LETTER_SUBJECT_TPL.format(contract_number=contract,
                                   calc_date=calc_date,
                                   cf=cf)
       ),
       "Heading 2",
-)
+    )
   
     grand_total = 0
   
