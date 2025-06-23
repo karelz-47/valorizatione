@@ -295,7 +295,8 @@ def build_doc(
     p.add_run(_fmt(grand_total))
 
     doc.add_paragraph("")           # spacer
-    doc.add_paragraph(OUTRO_PARAGRAPH)doc.add_paragraph("")
+    doc.add_paragraph(OUTRO_PARAGRAPH)
+    doc.add_paragraph("")
     doc.add_paragraph(GOODBYE_LINE)
     doc.add_paragraph("")
     doc.add_paragraph(SIGNATURE_BLOCK)
