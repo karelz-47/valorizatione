@@ -295,20 +295,11 @@ def build_doc(
     "Heading 2",
     )
     doc.add_paragraph("")  # blank line after subject
-    doc.add_paragraph(
+    para = doc.add_paragraph(
         LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date)
     )
     para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     
-    _safe_style(
-      doc.add_paragraph(
-        LETTER_SUBJECT_TPL.format(contract_number=contract,
-                                  calc_date=calc_date,
-                                  cf=cf)
-      ),
-      "Heading 2",
-    )
-  
     grand_total = 0
   
     # tables in predefined order
@@ -364,7 +355,7 @@ def build_doc(
     p.add_run(_fmt(grand_total))
 
     doc.add_paragraph("")           # spacer
-    doc.add_paragraph(OUTRO_PARAGRAPH)
+    para = doc.add_paragraph(OUTRO_PARAGRAPH)
     para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     doc.add_paragraph("")
     doc.add_paragraph(GOODBYE_LINE)
