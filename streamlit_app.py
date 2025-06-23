@@ -238,12 +238,31 @@ def _safe_style(paragraph, style_name: str):
         # template lacks the style – skip silently
         pass
 
-def _safe_table_style(table, style_name: str):
-    """Apply a table style if it exists in the template."""
+def _safe_table_style(table, style_name: str) -> bool:
     try:
         table.style = style_name
+        return True
     except KeyError:
-        pass   # fall back to default table formatting
+        return False
+
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+
+def _add_thin_borders(tbl):
+    """Ensure 0.5-pt black borders if the table style has none."""
+    tbl_pr = tbl._tbl.tblPr
+    borders = tbl_pr.first_child_found_in("w:tblBorders")
+    if borders is None:
+        borders = OxmlElement("w:tblBorders")
+        tbl_pr.append(borders)
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        elem = borders.find(qn(f"w:{edge}"))
+        if elem is None:
+            elem = OxmlElement(f"w:{edge}")
+            borders.append(elem)
+        elem.set(qn("w:val"), "single")
+        elem.set(qn("w:sz"), "4")     # 0.5 pt
+        elem.set(qn("w:color"), "000000")
 
 
 # -------------------------------------------------------------------------
@@ -279,8 +298,9 @@ def build_doc(
     doc.add_paragraph(
         LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date)
     )
-
-    _safe_style(
+    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    
+  _safe_style(
       doc.add_paragraph(
         LETTER_SUBJECT_TPL.format(contract_number=contract,
                                   calc_date=calc_date,
@@ -305,7 +325,8 @@ def build_doc(
         header = bool(cfg["title"])
         rows = 1 if header else 0
         tbl = doc.add_table(rows=rows, cols=2)   # create table
-        _safe_table_style(tbl, "Table Grid")     # apply style only if it exists
+        if not _safe_table_style(tbl, "Table Grid"):
+        _add_thin_borders(tbl)      # fallback when style is absent
         if header:
             tbl.rows[0].cells[0].text = "Item"
             hdr_imp = tbl.rows[0].cells[1]
@@ -344,6 +365,7 @@ def build_doc(
 
     doc.add_paragraph("")           # spacer
     doc.add_paragraph(OUTRO_PARAGRAPH)
+    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     doc.add_paragraph("")
     doc.add_paragraph(GOODBYE_LINE)
     doc.add_paragraph("")
