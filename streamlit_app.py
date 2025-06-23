@@ -90,6 +90,11 @@ ITEM_CONFIG = {
         "table": "T1",
         "pos": 5,
     },
+    "Returned Premium": {
+        "label": "Pagamenti dei Premi identificati",
+        "table": "T1",
+        "pos": 5,
+    },
 
     "Risk deduction - Death": {
         "label": "Trattenuta copertura rischio morte",
@@ -120,6 +125,11 @@ ITEM_CONFIG = {
     # ────────────────  Table T2  ────────────────
     "Investment return of Novis Loyalty Bonus": {
         "label": "Rendimento Bonus Fedeltà NOVIS",
+        "table": "T2",
+        "pos": 1,
+    },
+    "Investment deduction of Novis Loyalty Bonus": {
+        "label": "Costi di investimento - Bonus Fedeltà NOVIS",
         "table": "T2",
         "pos": 1,
     },
