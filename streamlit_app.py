@@ -327,11 +327,11 @@ def build_doc(
         tbl = doc.add_table(rows=rows, cols=2)   # create table
           if not _safe_table_style(tbl, "Table Grid"):
             _add_thin_borders(tbl)      # fallback when style is absent
-        if header:
-            tbl.rows[0].cells[0].text = "Item"
-            hdr_imp = tbl.rows[0].cells[1]
-            hdr_imp.text = "Importo"
-            hdr_imp.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+              if header:
+                  tbl.rows[0].cells[0].text = "Item"
+                  hdr_imp = tbl.rows[0].cells[1]
+                  hdr_imp.text = "Importo"
+                  hdr_imp.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         for _, row in df_tbl.iterrows():
             c1, c2 = tbl.add_row().cells
