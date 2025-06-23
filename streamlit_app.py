@@ -230,6 +230,15 @@ def doc_to_bytes(doc: Document) -> bytes:
     buf.seek(0)
     return buf.getvalue()
 
+def _safe_style(paragraph, style_name: str):
+    """Apply Word style only if it exists in the template."""
+    try:
+        paragraph.style = style_name
+    except KeyError:
+        # template lacks the style – skip silently
+        pass
+
+
 # -------------------------------------------------------------------------
 #  DOCX BUILDER
 # -------------------------------------------------------------------------
@@ -255,6 +264,15 @@ def build_doc(
     doc.add_paragraph("")
     doc.add_paragraph(LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date))
 
+    _safe_style(
+      doc.add_paragraph(
+        LETTER_SUBJECT_TPL.format(contract_number=contract,
+                                  calc_date=calc_date,
+                                  cf=cf)
+      ),
+      "Heading 2",
+)
+  
     grand_total = 0
   
     # tables in predefined order
@@ -263,8 +281,11 @@ def build_doc(
         df_tbl = tables[tid]
 
         if cfg["title"]:
-            doc.add_paragraph(cfg["title"]).style = "Heading 3"
-
+            _safe_style(
+                doc.add_paragraph(cfg["title"]),
+                "Heading 3",
+            )
+      
         header = bool(cfg["title"])
         rows = 1 if header else 0
         tbl = doc.add_table(rows=rows, cols=2, style="Table Grid")   # ▸ borders
