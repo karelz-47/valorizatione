@@ -242,7 +242,8 @@ def build_doc(
     calc_date: str,
     tables: dict[str, pd.DataFrame],
 ) -> Document:
-    doc = Document()
+    
+    doc = Document("Novis_hl_papier_IT_motyl_12072023_prev.docx")
 
     # address block
     for part in (client_name, client_addr, "", date.today().strftime("%d/%m/%Y"), ""):
