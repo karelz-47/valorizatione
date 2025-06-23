@@ -20,6 +20,7 @@ import streamlit as st
 from babel.numbers import format_currency
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from typing import List   # if it was only used for those lists
 
 # -------------------------------------------------------------------------
 #  LOCALE SETUP
@@ -34,21 +35,108 @@ except locale.Error:
 # ╚══════════════════════════════════════════════════════════════════════╝
 
 ITEM_CONFIG = {
-    # Cost table (T1)
-    "Acquisition cost deduction from regular premium": {"label": "Costi di emissione e gestione", "table": "T1"},
-    "Contract fee deduction from regular premium": {"label": "Costi di emissione e gestione", "table": "T1"},
-    "Acquisition cost deduction from single premium": {"label": "Costi di emissione e gestione", "table": "T1"},
-    "Contract fee deduction from single premium": {"label": "Costi di emissione e gestione", "table": "T1"},
-    "Administrative deduction": {"label": "Costi di caricamento", "table": "T1"},
-    "Investment deduction": {"label": "Costi di investimento", "table": "T1"},
-    "Investment deduction from Regular Premium Balance": {"label": "Costi di investimento", "table": "T1"},
-    "Investment deduction from Single PremiumBalance": {"label": "Costi di investimento", "table": "T1"},
-    "Risk deduction - Death": {"label": "Trattenuta copertura rischio morte", "table": "T1"},
-    "Risk deduction - Waiver of premium": {"label": "Esonero Pagamento Premi ITP", "table": "T1"},
-    "Risk deduction - Illnesses and operations": {"label": "Trattenuta rischio malattia / interventi", "table": "T1"},
-    "Risk deduction - accident insurance deduction": {"label": "Trattenuta copertura rischio infortunio", "table": "T1"},
-    "Investment return from insurance funds": {"label": "Capitalizzazione", "table": "T1"},
-    "Paid Premium": {"label": "Pagamenti dei Premi identificati", "table": "T1"},
+    # ────────────────  Table T1  ────────────────
+    "Acquisition cost deduction from regular premium": {
+        "label": "Costi di emissione e gestione",
+        "table": "T1",
+        "pos": 1,
+    },
+    "Contract fee deduction from regular premium": {
+        "label": "Costi di emissione e gestione",
+        "table": "T1",
+        "pos": 1,                 # same position; rows will merge
+    },
+    "Acquisition cost deduction from single premium": {
+        "label": "Costi di emissione e gestione",
+        "table": "T1",
+        "pos": 1,
+    },
+    "Contract fee deduction from single premium": {
+        "label": "Costi di emissione e gestione",
+        "table": "T1",
+        "pos": 1,
+    },
+
+    "Administrative deduction": {
+        "label": "Costi di caricamento",
+        "table": "T1",
+        "pos": 2,
+    },
+
+    "Investment deduction": {
+        "label": "Costi di investimento",
+        "table": "T1",
+        "pos": 3,
+    },
+    "Investment deduction from Regular Premium Balance": {
+        "label": "Costi di investimento",
+        "table": "T1",
+        "pos": 3,
+    },
+    "Investment deduction from Single PremiumBalance": {
+        "label": "Costi di investimento",
+        "table": "T1",
+        "pos": 3,
+    },
+
+    "Investment return from insurance funds": {
+        "label": "Capitalizzazione",
+        "table": "T1",
+        "pos": 4,
+    },
+
+    "Paid Premium": {
+        "label": "Pagamenti dei Premi identificati",
+        "table": "T1",
+        "pos": 5,
+    },
+
+    "Risk deduction - Death": {
+        "label": "Trattenuta copertura rischio morte",
+        "table": "T1",
+        "pos": 6,
+    },
+    "Risk deduction - accident insurance deduction": {
+        "label": "Trattenuta copertura rischio infortunio",
+        "table": "T1",
+        "pos": 7,
+    },
+    "Risk deduction - Illnesses and operations": {
+        "label": "Trattenuta copertura rischio malattia, interventi chirurgici e assistenza",
+        "table": "T1",
+        "pos": 8,
+    },
+   "Risk deduction - Waiver of premium": {
+        "label": "Esonero Pagamento Premi ITP",
+        "table": "T1",
+        "pos": 9,      # appears after ordered rows
+    },
+    "Partial surrender": {
+         "label": "Riscatto (parziale) + Costi di riscatto",
+         "table": "T1",
+         "pos": 10,
+    },
+
+    # ────────────────  Table T2  ────────────────
+    "Investment return of Novis Loyalty Bonus": {
+        "label": "Rendimento Bonus Fedeltà NOVIS",
+        "table": "T2",
+        "pos": 1,
+    },
+    # If the raw file already contains the Italian string use it directly:
+    "NOVIS Loyalty Bonus": {
+        "label": "Bonus Fedeltà NOVIS",
+        "table": "T2",
+        "pos": 2,
+    },
+
+    # ────────────────  Table T3 (Special Bonus)  ────────────────
+    "NOVIS Special Bonus": {
+        "label": "NOVIS Special Bonus",
+        "table": "T3",
+        "pos": 1,        # only row in its table
+    },
+   }
 
     # Bonus / loyalty (T2)
     "Investment return of Novis Loyalty Bonus": {"label": "Rendimento Bonus Fedeltà NOVIS", "table": "T2"},
@@ -56,6 +144,8 @@ ITEM_CONFIG = {
     # Special bonus (T3)
     "NOVIS Special Bonus": {"label": "NOVIS Special Bonus", "table": "T3"},
 }
+
+LABEL_POS = {cfg["label"]: cfg.get("pos", 999) for cfg in ITEM_CONFIG.values()}
 
 TABLE_CONFIG = {
     # title empty → no "Item / Importo" header row (as in template)
@@ -121,9 +211,14 @@ def aggregate_tables(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
     df["Table"] = df["Item name"].apply(lambda x: ITEM_CONFIG.get(x, {}).get("table", "T1"))
     grouped = df.groupby(["Table", "Label"], as_index=False)["Item value"].sum()
     grouped.rename(columns={"Item value": "Amount"}, inplace=True)
-    tables: dict[str, pd.DataFrame] = {}
+
+    tables = {}
     for tid, g in grouped.groupby("Table"):
-        tables[tid] = g.drop(columns="Table").sort_values("Label")
+        order = TABLE_CONFIG.get(tid, {}).get("order", [])
+        # custom order first, then alphabetic
+        g["sort_key"] = g["Label"].apply(lambda x: LABEL_POS.get(x, 999))
+        g = g.sort_values(["sort_key", "Label"]).drop(columns="sort_key")
+        tables[tid] = g.drop(columns="Table")
     return tables
 
 def doc_to_bytes(doc: Document) -> bytes:
@@ -156,38 +251,58 @@ def build_doc(
     doc.add_paragraph("")
     doc.add_paragraph(LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date))
 
+    grand_total = 0
+  
     # tables in predefined order
     for tid in [k for k in TABLE_CONFIG if k in tables]:
         cfg = TABLE_CONFIG[tid]
-        tbl_df = tables[tid]
+        df_tbl = tables[tid]
+
         if cfg["title"]:
             doc.add_paragraph(cfg["title"]).style = "Heading 3"
-        # header only if a visible title exists
-        include_header = bool(cfg["title"])
-        rows = 1 if include_header else 0
-        t = doc.add_table(rows=rows, cols=2)
-        if include_header:
-            t.rows[0].cells[0].text = "Item"
-            hdr_imp = t.rows[0].cells[1]
+
+        header = bool(cfg["title"])
+        rows = 1 if header else 0
+        tbl = doc.add_table(rows=rows, cols=2, style="Table Grid")   # ▸ borders
+
+        if header:
+            tbl.rows[0].cells[0].text = "Item"
+            hdr_imp = tbl.rows[0].cells[1]
             hdr_imp.text = "Importo"
             hdr_imp.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        for _, r in tbl_df.iterrows():
-            c1, c2 = t.add_row().cells
-            c1.text = r["Label"]
-            c2.text = _fmt(r["Amount"])
+
+        for _, row in df_tbl.iterrows():
+            c1, c2 = tbl.add_row().cells
+            c1.text = row["Label"]
+            # bold the Special Bonus row
+            if row["Label"] == "NOVIS Special Bonus":
+                run = c1.paragraphs[0].runs[0]
+                run.bold = True
+            c2.text = _fmt(row["Amount"])
             c2.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+        subtotal = df_tbl["Amount"].sum()
         if cfg.get("include_total"):
-            total = tbl_df["Amount"].sum()
-            c1, c2 = t.add_row().cells
+            c1, c2 = tbl.add_row().cells
             c1.text = cfg.get("total_label", "Totale")
-            c1.paragraphs[0].runs[0].bold = True
-            c2.text = _fmt(total)
+            for r in c1.paragraphs[0].runs:
+                r.bold = True
+            c2.text = _fmt(subtotal)
             c2.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
             c2.paragraphs[0].runs[0].bold = True
+
+        grand_total += subtotal
         doc.add_paragraph("")
 
-    doc.add_paragraph(OUTRO_PARAGRAPH)
-    doc.add_paragraph("")
+    # grand total line
+    p = doc.add_paragraph()
+    run1 = p.add_run("Valore della Sua posizione assicurativa ")
+    run1.bold = True
+    p.add_run("(incluso Bonus Fedeltà NOVIS e NOVIS Special Bonus) ")
+    p.add_run(_fmt(grand_total))
+
+    doc.add_paragraph("")           # spacer
+    doc.add_paragraph(OUTRO_PARAGRAPH)doc.add_paragraph("")
     doc.add_paragraph(GOODBYE_LINE)
     doc.add_paragraph("")
     doc.add_paragraph(SIGNATURE_BLOCK)
