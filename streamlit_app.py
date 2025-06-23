@@ -258,11 +258,20 @@ def build_doc(
     for part in (client_name, client_addr, "", date.today().strftime("%d/%m/%Y"), ""):
         doc.add_paragraph(part)
 
+    _safe_style(
+        doc.add_paragraph(
+            LETTER_SUBJECT_TPL.format(
+                contract_number=contract,
+                calc_date=calc_date,
+                cf=cf,
+            )
+        ),
+    "Heading 2",
+    )
+    doc.add_paragraph("")  # blank line after subject
     doc.add_paragraph(
-        LETTER_SUBJECT_TPL.format(contract_number=contract, calc_date=calc_date, cf=cf)
-    ).style = "Heading 2"
-    doc.add_paragraph("")
-    doc.add_paragraph(LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date))
+        LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date)
+    )
 
     _safe_style(
       doc.add_paragraph(
