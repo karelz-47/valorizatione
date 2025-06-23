@@ -326,8 +326,8 @@ def build_doc(
         rows = 1 if header else 0
         tbl = doc.add_table(rows=rows, cols=2)   # create table
         if not _safe_table_style(tbl, "Table Grid"):
-            _add_thin_borders(tbl)      # fallback when style is absent
-              if header:
+          _add_thin_borders(tbl)      # fallback when style is absent
+          if header:
                   tbl.rows[0].cells[0].text = "Item"
                   hdr_imp = tbl.rows[0].cells[1]
                   hdr_imp.text = "Importo"
