@@ -129,7 +129,7 @@ ITEM_CONFIG = {
         "table": "T2",
         "pos": 2,
     },
-
+  
     # ────────────────  Table T3 (Special Bonus)  ────────────────
     "NOVIS Special Bonus": {
         "label": "NOVIS Special Bonus",
@@ -137,14 +137,7 @@ ITEM_CONFIG = {
         "pos": 1,        # only row in its table
     },
    }
-
-    # Bonus / loyalty (T2)
-    "Investment return of Novis Loyalty Bonus": {"label": "Rendimento Bonus Fedeltà NOVIS", "table": "T2"},
-
-    # Special bonus (T3)
-    "NOVIS Special Bonus": {"label": "NOVIS Special Bonus", "table": "T3"},
-}
-
+ 
 LABEL_POS = {cfg["label"]: cfg.get("pos", 999) for cfg in ITEM_CONFIG.values()}
 
 TABLE_CONFIG = {
