@@ -327,14 +327,14 @@ def build_doc(
 
     # address block
     p = doc.add_paragraph(client_name)
-    p.paragraph_format.left_indent = Inches(3)
+    p.paragraph_format.left_indent = Inches(4)
 
     for line in split_addr(client_addr):
         q = doc.add_paragraph(line)
-        q.paragraph_format.left_indent = Inches(3)
+        q.paragraph_format.left_indent = Inches(4)
 
     r = doc.add_paragraph(date.today().strftime("%d/%m/%Y"))
-    r.paragraph_format.left_indent = Inches(3)
+    r.paragraph_format.left_indent = Inches(4)
     doc.add_paragraph("")   # blank
     
     # 2-line replacement for the subject block
