@@ -346,7 +346,8 @@ def build_doc(
     doc.add_paragraph(
         LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date)
     )
-   
+    doc.add_paragraph("")  # blank line after intro
+
     grand_total = 0
   
     # tables in predefined order
