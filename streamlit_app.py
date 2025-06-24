@@ -233,6 +233,8 @@ def aggregate_tables(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
         df.groupby(["Table", "Label"], as_index=False)["Signed"].sum()
         .rename(columns={"Signed": "Amount"})
     )
+    
+  grouped = grouped[grouped["Amount"] != 0]   # ← hide rows that net to €0
 
     tables = {}
     for tid, g in grouped.groupby("Table"):
@@ -393,12 +395,19 @@ def build_doc(
         grand_total += subtotal
         doc.add_paragraph("")
 
-    # grand total line
-    p = doc.add_paragraph()
-    run1 = p.add_run("Valore della Sua posizione assicurativa ")
-    run1.bold = True
-    p.add_run("(incluso Bonus Fedeltà NOVIS e NOVIS Special Bonus) ")
-    p.add_run(_fmt(grand_total))
+    # grand-total as its own table
+    gt = doc.add_table(rows=1, cols=2)
+    _safe_table_style(gt, "Table Grid") or _add_thin_borders(gt)
+
+    c1, c2 = gt.rows[0].cells
+    c1.text = "Valore della Sua posizione assicurativa (incluso Bonus Fedeltà NOVIS e NOVIS Special Bonus)"
+    c2.text = _fmt(grand_total)
+    c2.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+    # bold label + amount
+    for run in c1.paragraphs[0].runs:
+      run.bold = True
+    c2.paragraphs[0].runs[0].bold = True
 
     doc.add_paragraph("")           # spacer
     para = doc.add_paragraph(OUTRO_PARAGRAPH)
