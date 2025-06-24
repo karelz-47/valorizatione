@@ -18,6 +18,7 @@ import re
 import pandas as pd
 import streamlit as st
 from babel.numbers import format_currency
+from docx import Document            # ← ADD THIS LINE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches
 from typing import List
