@@ -399,11 +399,12 @@ def main():
 
     if st.button("→ Importa") and clip_txt.strip():
         parsed = parse_clipboard(clip_txt)
-        # write into session_state to pre-fill widgets
-        st.session_state.setdefault("contract", parsed["contract"])
-        st.session_state.setdefault("name", parsed["name"])
-        st.session_state.setdefault("addr", parsed["addr"])
-        st.session_state.setdefault("cf", parsed["cf"])
+        st.session_state.update(
+          contract=parsed["contract"],
+          name=parsed["name"],
+          addr=parsed["addr"],
+          cf=parsed["cf"],
+        )
 
     name = st.text_input("Nome", key="name")
     addr = st.text_area("Indirizzo", key="addr")
