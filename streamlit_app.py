@@ -283,6 +283,14 @@ def parse_clipboard(blob: str) -> dict:
             out[key] = m.group(1).strip()
     return out
 
+def split_addr(addr: str) -> list[str]:
+    """
+    Turn  'Street 8, 23849 Rogeno, Italy'
+    into ['Street 8', '23849 Rogeno', 'Italy'].
+    """
+    return [p.strip() for p in addr.split(",") if p.strip()]
+
+
 # -------------------------------------------------------------------------
 #  DOCX BUILDER
 # -------------------------------------------------------------------------
@@ -299,8 +307,12 @@ def build_doc(
     doc = Document("Novis_hl_papier_IT_motyl_12072023_prev.docx")
 
     # address block
-    for part in (client_name, client_addr, "", date.today().strftime("%d/%m/%Y"), ""):
-        doc.add_paragraph(part)
+    doc.add_paragraph(client_name)
+    for line in split_addr(client_addr):
+      doc.add_paragraph(line)
+    doc.add_paragraph("")                              # blank
+    doc.add_paragraph(date.today().strftime("%d/%m/%Y"))
+    doc.add_paragraph("")
 
     _safe_style(
         doc.add_paragraph(
@@ -399,11 +411,12 @@ def main():
 
     if st.button("→ Importa") and clip_txt.strip():
         parsed = parse_clipboard(clip_txt)
+        parsed["addr"] = "\n".join(split_addr(parsed["addr"]))   # ↵ inside widget
         st.session_state.update(
-          contract=parsed["contract"],
-          name=parsed["name"],
-          addr=parsed["addr"],
-          cf=parsed["cf"],
+            contract=parsed["contract"],
+            name=parsed["name"],
+            addr=parsed["addr"],
+            cf=parsed["cf"],
         )
 
     name = st.text_input("Nome", key="name")
