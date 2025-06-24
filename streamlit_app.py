@@ -150,6 +150,13 @@ ITEM_CONFIG = {
  
 LABEL_POS = {cfg["label"]: cfg.get("pos", 999) for cfg in ITEM_CONFIG.values()}
 
+POSITIVE_LABELS = {
+    "Pagamenti dei Premi identificati",
+    "Rendimento Bonus Fedeltà NOVIS",
+    "Bonus Fedeltà NOVIS",
+    "NOVIS Special Bonus",
+}
+
 TABLE_CONFIG = {
     # title empty → no "Item / Importo" header row (as in template)
     "T1": {"title": "", "include_total": True, "total_label": "Somma totale (escluso Bonus Fedeltà NOVIS e Special Bonus)"},
@@ -162,7 +169,7 @@ LETTER_SUBJECT_TPL = (
     "{contract_number} al {calc_date} con codice fiscale {cf}."
 )
 LETTER_BODY_HEADER_TPL = (
-    "Egregio/a {client_name},\n\n"
+    "Egregio/a {client_name},\n"
     "siamo con la presente a trasmetterLe di seguito la tabella riportante il "
     "dettaglio dei costi applicati ai fini di calcolo del valore della Sua "
     "posizione assicurativa al {calc_date}."
@@ -212,9 +219,13 @@ def aggregate_tables(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
     df = df.dropna(subset=["Item value"])
     df["Label"] = df["Item name"].apply(lambda x: ITEM_CONFIG.get(x, {}).get("label", x))
     df["Table"] = df["Item name"].apply(lambda x: ITEM_CONFIG.get(x, {}).get("table", "T1"))
-    grouped = df.groupby(["Table", "Label"], as_index=False)["Item value"].sum()
-    grouped.rename(columns={"Item value": "Amount"}, inplace=True)
-
+    # invert sign for every label NOT in POSITIVE_LABELS (except we keep actual sign
+    # for 'Capitalizzazione')
+    df["Signed"] = df.apply(
+        lambda r: r["Item value"] if (r["Label"] in POSITIVE_LABELS or r["Label"] == "Capitalizzazione")
+        else -r["Item value"],
+        axis=1,
+    )
     tables = {}
     for tid, g in grouped.groupby("Table"):
         order = TABLE_CONFIG.get(tid, {}).get("order", [])
@@ -325,11 +336,10 @@ def build_doc(
     "Heading 2",
     )
     doc.add_paragraph("")  # blank line after subject
-    para = doc.add_paragraph(
+    doc.add_paragraph(
         LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date)
     )
-    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    
+   
     grand_total = 0
   
     # tables in predefined order
