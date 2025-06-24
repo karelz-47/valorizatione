@@ -222,17 +222,23 @@ def aggregate_tables(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
     # invert sign for every label NOT in POSITIVE_LABELS (except we keep actual sign
     # for 'Capitalizzazione')
     df["Signed"] = df.apply(
-        lambda r: r["Item value"] if (r["Label"] in POSITIVE_LABELS or r["Label"] == "Capitalizzazione")
-        else -r["Item value"],
-        axis=1,
+      lambda r: r["Item value"]
+      if r["Label"] in POSITIVE_LABELS or r["Label"] == "Capitalizzazione"
+      else -r["Item value"],
+      axis=1,
     )
+
+    # create the grouped dataframe _before_ the loop
+    grouped = (
+        df.groupby(["Table", "Label"], as_index=False)["Signed"].sum()
+        .rename(columns={"Signed": "Amount"})
+    )
+
     tables = {}
     for tid, g in grouped.groupby("Table"):
-        order = TABLE_CONFIG.get(tid, {}).get("order", [])
-        # custom order first, then alphabetic
-        g["sort_key"] = g["Label"].apply(lambda x: LABEL_POS.get(x, 999))
-        g = g.sort_values(["sort_key", "Label"]).drop(columns="sort_key")
-        tables[tid] = g.drop(columns="Table")
+      g["sort_key"] = g["Label"].apply(lambda x: LABEL_POS.get(x, 999))
+      g = g.sort_values(["sort_key", "Label"]).drop(columns="sort_key")
+      tables[tid] = g.drop(columns="Table")
     return tables
 
 def doc_to_bytes(doc: Document) -> bytes:
