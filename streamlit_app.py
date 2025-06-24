@@ -183,11 +183,8 @@ OUTRO_PARAGRAPH = (
 )
 GOODBYE_LINE = "Cordiali saluti,"
 SIGNATURE_BLOCK = (
-    "Il team NOVIS\n\n"
-    "NOVIS Insurance Company,\n"
-    "NOVIS Versicherungsgesellschaft,\n"
-    "NOVIS Compagnia di Assicurazioni,\n"
-    "NOVIS Poisťovňa a.s."
+    "Il team NOVIS"
+    
 )
 
 COLUMN_ALIASES = {
