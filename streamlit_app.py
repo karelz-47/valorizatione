@@ -233,8 +233,7 @@ def aggregate_tables(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
         df.groupby(["Table", "Label"], as_index=False)["Signed"].sum()
         .rename(columns={"Signed": "Amount"})
     )
-    
-  grouped = grouped[grouped["Amount"] != 0]   # ← hide rows that net to €0
+    grouped = grouped[grouped["Amount"] != 0]   # ← hide rows that net to €0
 
     tables = {}
     for tid, g in grouped.groupby("Table"):
