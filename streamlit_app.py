@@ -410,8 +410,7 @@ def build_doc(
     c2.paragraphs[0].runs[0].bold = True
 
     doc.add_paragraph("")           # spacer
-    para = doc.add_paragraph(OUTRO_PARAGRAPH)
-    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    doc.add_paragraph(OUTRO_PARAGRAPH)
     doc.add_paragraph("")
     doc.add_paragraph(GOODBYE_LINE)
     doc.add_paragraph("")
