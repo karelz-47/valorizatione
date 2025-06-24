@@ -14,7 +14,7 @@ Enhanced Streamlit app:
 import locale
 from datetime import date
 from io import BytesIO
-
+import re                          
 import pandas as pd
 import streamlit as st
 from babel.numbers import format_currency
@@ -264,6 +264,24 @@ def _add_thin_borders(tbl):
         elem.set(qn("w:sz"), "4")     # 0.5 pt
         elem.set(qn("w:color"), "000000")
 
+def parse_clipboard(blob: str) -> dict:
+    """
+    Extract contract, name, address, fiscal code from the pasted block.
+    Returns {"contract": …, "name": …, "addr": …, "cf": …}
+    Missing fields come back empty.
+    """
+    patterns = {
+        "contract": r"Contract number:\s*(.+)",
+        "name":     r"Policyholder:\s*(.+)",
+        "addr":     r"Permanent residence:\s*(.+)",
+        "cf":       r"Personal number:\s*(.+)",
+    }
+    out = {k: "" for k in patterns}
+    for key, pat in patterns.items():
+        m = re.search(pat, blob, flags=re.I)
+        if m:
+            out[key] = m.group(1).strip()
+    return out
 
 # -------------------------------------------------------------------------
 #  DOCX BUILDER
@@ -374,10 +392,23 @@ def main():
     file = st.file_uploader("Carica file movimenti (XLS/XLSX)", type=["xls", "xlsx"])
 
     st.subheader("Dati cliente")
-    name = st.text_input("Nome")
-    addr = st.text_area("Indirizzo")
-    cf = st.text_input("Codice fiscale")
-    contract = st.text_input("Numero polizza")
+    
+    # --- new clipboard import UI -------------------------------------------
+    st.subheader("Incolla dati dal sistema interno")
+    clip_txt = st.text_area("Blocca-dati", height=140, key="clip")
+
+    if st.button("→ Importa") and clip_txt.strip():
+        parsed = parse_clipboard(clip_txt)
+        # write into session_state to pre-fill widgets
+        st.session_state.setdefault("contract", parsed["contract"])
+        st.session_state.setdefault("name", parsed["name"])
+        st.session_state.setdefault("addr", parsed["addr"])
+        st.session_state.setdefault("cf", parsed["cf"])
+
+    name = st.text_input("Nome", key="name")
+    addr = st.text_area("Indirizzo", key="addr")
+    cf = st.text_input("Codice fiscale", key="cf")
+    contract = st.text_input("Numero polizza", key="contract")
     calc_date = st.date_input("Data valorizzazione", value=date.today()).strftime("%d/%m/%Y")
 
     if file is not None:
