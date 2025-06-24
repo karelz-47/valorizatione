@@ -20,6 +20,7 @@ import streamlit as st
 from babel.numbers import format_currency
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches
 from typing import List   # if it was only used for those lists
 
 # -------------------------------------------------------------------------
@@ -325,24 +326,22 @@ def build_doc(
     doc = Document("Novis_hl_papier_IT_motyl_12072023_prev.docx")
 
     # address block
-    doc.add_paragraph(client_name)
+    doc.add_paragraph(client_name).paragraph_format.left_indent = docx.shared.Inches(3)
     for line in split_addr(client_addr):
-      doc.add_paragraph(line)
-    doc.add_paragraph("")                              # blank
-    doc.add_paragraph(date.today().strftime("%d/%m/%Y"))
-    doc.add_paragraph("")
-
-    _safe_style(
-        doc.add_paragraph(
-            LETTER_SUBJECT_TPL.format(
-                contract_number=contract,
-                calc_date=calc_date,
-                cf=cf,
-            )
-        ),
-    "Heading 2",
-    )
+        doc.add_paragraph(line).paragraph_format.left_indent = docx.shared.Inches(3)
+    doc.add_paragraph(date.today().strftime("%d/%m/%Y")).paragraph_format.left_indent = docx.shared.Inches(3)
+    doc.add_paragraph("")   # blank
+    
+    # 2-line replacement for the subject block
+    p = doc.add_paragraph()
+    _safe_style(p, "Heading 2")
+    p.add_run("Dettaglio costi per il valore della Sua posizione assicurativa polizza n. ").bold = True
+    p.add_run(contract).bold = True              # policy number
+    p.add_run(f" al {calc_date} con codice fiscale ").bold = True
+    p.add_run(cf).bold = True                    # codice fiscale
+    
     doc.add_paragraph("")  # blank line after subject
+    
     doc.add_paragraph(
         LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date)
     )
@@ -377,8 +376,8 @@ def build_doc(
             c1.text = row["Label"]
             # bold the Special Bonus row
             if row["Label"] == "NOVIS Special Bonus":
-                run = c1.paragraphs[0].runs[0]
-                run.bold = True
+                c1.paragraphs[0].runs[0].bold = True
+                c2.paragraphs[0].runs[0].bold = True 
             c2.text = _fmt(row["Amount"])
             c2.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
