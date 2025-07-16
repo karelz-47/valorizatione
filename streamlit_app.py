@@ -86,11 +86,30 @@ ITEM_CONFIG = {
         "pos": 4,
     },
 
+    "Investment return from insurance funds of Regular premium": {
+        "label": "Capitalizzazione",
+        "table": "T1",
+        "pos": 4,
+    },
+
+    "Investment return from insurance funds of Single premium": {
+        "label": "Capitalizzazione",
+        "table": "T1",
+        "pos": 4,
+    },
+
     "Paid Premium": {
         "label": "Pagamenti dei Premi identificati",
         "table": "T1",
         "pos": 5,
     },
+    
+    "Paid Single Premium": {
+        "label": "Pagamenti dei Premi identificati",
+        "table": "T1",
+        "pos": 5,
+    },
+  
     "Returned Premium": {
         "label": "Pagamenti dei Premi identificati",
         "table": "T1",
@@ -102,25 +121,35 @@ ITEM_CONFIG = {
         "table": "T1",
         "pos": 6,
     },
+  
     "Risk deduction - accident insurance deduction": {
         "label": "Trattenuta copertura rischio infortunio",
         "table": "T1",
         "pos": 7,
     },
+  
     "Risk deduction - Illnesses and operations": {
         "label": "Trattenuta copertura rischio malattia, interventi chirurgici e assistenza",
         "table": "T1",
         "pos": 8,
     },
+  
    "Risk deduction - Waiver of premium": {
         "label": "Esonero Pagamento Premi ITP",
         "table": "T1",
         "pos": 9,      # appears after ordered rows
     },
+  
     "Partial surrender": {
          "label": "Riscatto (parziale) + Costi di riscatto",
          "table": "T1",
          "pos": 10,
+    },
+
+    "Stamp Duty Fee": {
+         "label": "Imposta di bollo",
+         "table": "T1",
+         "pos": 11,
     },
 
     # ────────────────  Table T2  ────────────────
