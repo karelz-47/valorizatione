@@ -1,14 +1,4 @@
 # streamlit_insurance_letter.py
-"""
-Enhanced Streamlit app:
-• Correct table‑ordering and formatting to mirror the official NOVIS letter
-  layout.
-• Any unmapped items fall back to the main cost table (T1).
-• Header row is only printed when a visible title precedes the table, matching
-  the reference PDF.
-• Amounts are right‑aligned; total rows bolded.
-• Tables rendered in the order specified by TABLE_CONFIG keys.
-"""
 
 # ---- Imports ------------------------------------------------------------
 import locale
@@ -204,12 +194,7 @@ LETTER_SUBJECT_TPL = (
     "Dettaglio costi per il valore della Sua posizione assicurativa polizza n. "
     "{contract_number} al {calc_date} con codice fiscale {cf}."
 )
-LETTER_BODY_HEADER_TPL = (
-    "Egregio/a {client_name},\n"
-    "siamo con la presente a trasmetterLe di seguito la tabella riportante il "
-    "dettaglio dei costi applicati ai fini di calcolo del valore della Sua "
-    "posizione assicurativa al {calc_date}."
-)
+
 OUTRO_PARAGRAPH = (
     "Qualora necessitasse di ulteriori informazioni in merito, La invitiamo "
     "gentilmente a riferirsi alla Tabella Costi contenuta nelle Condizioni di Assicurazione.\n\n"
@@ -219,8 +204,18 @@ OUTRO_PARAGRAPH = (
 GOODBYE_LINE = "Cordiali saluti,"
 SIGNATURE_BLOCK = (
     "Il team NOVIS"
-    
 )
+# ── constants (add near the other CONFIG blocks) ──────────────────────
+SALUTATION_ADDR = {
+    "male": "Egr. Sig.",
+    "female": "Gent. Sig.ra",
+    "company": "Spett.le",
+}
+SALUTATION_GREET = {
+    "male": "Egregio Signore",
+    "female": "Gentilissima Signora",
+    "company": "Spettabile",
+}
 
 COLUMN_ALIASES = {
     "EntryDate": "Item date",
@@ -236,6 +231,24 @@ EXPECTED_COLS = {"Item date", "Item name", "Item value"}
 
 def _fmt(amount: float) -> str:
     return format_currency(amount, "EUR", locale="it_IT")
+
+def make_intro(recipient_type: str, client_name: str, calc_date: str) -> str:
+    """
+    Builds the greeting + first paragraph in one shot, e.g.
+    'Egregio Signore Rossi,\nsiamo con la presente … al 30/06/2025.'
+    """
+    if recipient_type == "company":
+        greet_name = client_name
+    else:                               # pick the last token ⇒ surname
+        greet_name = client_name.split()[-1]
+
+    greeting = f"{SALUTATION_GREET[recipient_type]} {greet_name},"
+    body = (
+        "siamo con la presente a trasmetterLe di seguito la tabella riportante il "
+        "dettaglio dei costi applicati ai fini di calcolo del valore della Sua "
+        f"posizione assicurativa al {calc_date}."
+    )
+    return f"{greeting}\n{body}"
 
 
 def standardise_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -353,19 +366,23 @@ def build_doc(
     contract: str,
     calc_date: str,
     tables: dict[str, pd.DataFrame],
+    recipient_type: str = "male",
+    city: str = "Bratislava",
 ) -> Document:
     
     doc = Document("Novis_hl_papier_IT_motyl_12072023_prev.docx")
 
     # address block
-    p = doc.add_paragraph(client_name)
+    prefix_short = SALUTATION_ADDR[recipient_type]
+    p = doc.add_paragraph(f"{prefix_short} {client_name}")
     p.paragraph_format.left_indent = Inches(4)
 
     for line in split_addr(client_addr):
         q = doc.add_paragraph(line)
         q.paragraph_format.left_indent = Inches(4)
 
-    r = doc.add_paragraph(date.today().strftime("%d/%m/%Y"))
+    today_str = date.today().strftime("%d/%m/%Y")
+    r = doc.add_paragraph(f"{city}, {today_str}")
     r.paragraph_format.left_indent = Inches(4)
     doc.add_paragraph("")   # blank
     
@@ -379,9 +396,8 @@ def build_doc(
     
     doc.add_paragraph("")  # blank line after subject
     
-    para = doc.add_paragraph(
-      LETTER_BODY_HEADER_TPL.format(client_name=client_name, calc_date=calc_date)
-    )
+    intro_text = make_intro(recipient_type, client_name, calc_date)
+    para = doc.add_paragraph(intro_text)
     para.alignment = WD_ALIGN_PARAGRAPH.LEFT      # greeting left-aligned
     doc.add_paragraph("")  # blank line after intro
 
@@ -480,6 +496,25 @@ def main():
             cf=parsed["cf"],
         )
 
+    recipient_type = st.selectbox(
+      "Destinatario",
+      options={
+        "Uomo": "male",
+        "Donna": "female",
+        "Società": "company",
+      },
+      format_func=list,          # shows the Italian labels
+    )
+
+    # --- recipient selector --------------------------------------------------
+    label2value = {"Uomo": "male", "Donna": "female", "Società": "company"}
+    recip_label = st.selectbox("Destinatario", list(label2value.keys()))
+    recipient_type = label2value[recip_label]
+
+    # --- city input (so the variable exists) ---------------------------------
+    city = st.text_input("Luogo (prefisso alla data)", "Bratislava")
+
+  
     name = st.text_input("Nome", key="name")
     addr = st.text_area("Indirizzo", key="addr")
     cf = st.text_input("Codice fiscale", key="cf")
@@ -503,7 +538,11 @@ def main():
                 st.markdown(f"**{cfg['total_label']}: {_fmt(tbl_df['Amount'].sum())}**")
 
         if all([name, addr, cf, contract]):
-            doc = build_doc(name, addr, cf, contract, calc_date, tables)
+            doc = build_doc(
+              name, addr, cf, contract, calc_date, tables,
+              recipient_type=recipient_type,
+              city=city,
+            )
             st.download_button(
                 label="⬇️ Scarica Word",
                 data=doc_to_bytes(doc),
