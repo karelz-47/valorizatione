@@ -468,6 +468,13 @@ def build_doc(
     doc.add_paragraph(GOODBYE_LINE)
     doc.add_paragraph("")
     doc.add_paragraph(SIGNATURE_BLOCK)
+    doc.add_paragraph("")                 # empty line after "Il team NOVIS"
+    doc.add_paragraph(
+    "NOVIS Insurance Company,\n"
+    "NOVIS Versicherungsgesellschaft,\n"
+    "NOVIS Compagnia di Assicurazioni,\n"
+    "NOVIS Poisťovňa a.s."
+    )
     return doc
 
 # -------------------------------------------------------------------------
@@ -495,16 +502,6 @@ def main():
             addr=parsed["addr"],
             cf=parsed["cf"],
         )
-
-    recipient_type = st.selectbox(
-      "Destinatario",
-      options={
-        "Uomo": "male",
-        "Donna": "female",
-        "Società": "company",
-      },
-      format_func=list,          # shows the Italian labels
-    )
 
     # --- recipient selector --------------------------------------------------
     label2value = {"Uomo": "male", "Donna": "female", "Società": "company"}
@@ -546,7 +543,7 @@ def main():
             st.download_button(
                 label="⬇️ Scarica Word",
                 data=doc_to_bytes(doc),
-                file_name=f"Valorizzazione_dettagliata_polizza_{contract}.docx",
+                file_name=f"VAL_{contract}_{date.today().strftime('%d%m%y')}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
              ) 
         else:
