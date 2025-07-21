@@ -201,7 +201,7 @@ OUTRO_PARAGRAPH = (
     "Rimaniamo a disposizione per qualsiasi chiarimento e, ringraziando per la "
     "cortese attenzione, Le porgiamo i nostri più cordiali saluti."
 )
-GOODBYE_LINE = "Cordiali saluti,"
+GOODBYE_LINE = ""
 SIGNATURE_BLOCK = (
     "Il team NOVIS"
 )
@@ -464,8 +464,6 @@ def build_doc(
 
     doc.add_paragraph("")           # spacer
     doc.add_paragraph(OUTRO_PARAGRAPH)
-    doc.add_paragraph("")
-    doc.add_paragraph(GOODBYE_LINE)
     doc.add_paragraph("")
     doc.add_paragraph(SIGNATURE_BLOCK)
     doc.add_paragraph("")                 # empty line after "Il team NOVIS"
