@@ -2,7 +2,7 @@
 
 # ---- Imports ------------------------------------------------------------
 import locale
-from datetime import date
+from datetime import date, timedelta
 from io import BytesIO
 import re                          
 import pandas as pd
@@ -192,7 +192,7 @@ TABLE_CONFIG = {
 
 LETTER_SUBJECT_TPL = (
     "Dettaglio costi per il valore della Sua posizione assicurativa polizza n. "
-    "{contract_number} al {calc_date} con codice fiscale {cf}."
+    "{contract_number} al {calc_date_str} con codice fiscale {cf}."
 )
 
 OUTRO_PARAGRAPH = (
@@ -208,7 +208,7 @@ SIGNATURE_BLOCK = (
 # ── constants (add near the other CONFIG blocks) ──────────────────────
 SALUTATION_ADDR = {
     "male": "Egr. Sig.",
-    "female": "Gent. Sig.ra",
+    "female": "Gent.ma Sig.ra",
     "company": "Spett.le",
 }
 SALUTATION_GREET = {
@@ -231,6 +231,10 @@ EXPECTED_COLS = {"Item date", "Item name", "Item value"}
 
 def _fmt(amount: float) -> str:
     return format_currency(amount, "EUR", locale="it_IT")
+
+def last_day_prev_month(d: date) -> date:
+    """Return the last calendar day of the month preceding *d*."""
+    return d.replace(day=1) - timedelta(days=1)
 
 def last_name(name: str) -> str:
     """Return the surname; keep prefixes like 'Di', 'De', 'Del', etc."""
@@ -523,7 +527,22 @@ def main():
     addr = st.text_area("Indirizzo", key="addr")
     cf = st.text_input("Codice fiscale", key="cf")
     contract = st.text_input("Numero polizza", key="contract")
-    calc_date = st.date_input("Data valorizzazione", value=date.today()).strftime("%d/%m/%Y")
+    # --- valore al  fine‑mese -------------------------------------------------
+    # build a list of month‑end dates: previous month first, then going backwards
+    today = date.today()
+    opts = []
+    d = last_day_prev_month(today)       # default = last day of previous month
+    for _ in range(12):                  # make e.g. 3 years of choices
+        opts.append(d)
+        d = last_day_prev_month(d)       # hop back one more month
+
+    calc_date = st.selectbox(
+        "Data valorizzazione (solo fine mese)",
+        opts,
+        index=0,                         # pre‑select previous month end
+        format_func=lambda x: x.strftime("%d/%m/%Y"),
+    )
+    calc_date_str = calc_date.strftime("%d/%m/%Y")   # string for the DOCX
 
     if file is not None:
         try:
@@ -543,7 +562,7 @@ def main():
 
         if all([name, addr, cf, contract]):
             doc = build_doc(
-              name, addr, cf, contract, calc_date, tables,
+              name, addr, cf, contract, calc_date_str, tables,
               recipient_type=recipient_type,
               city=city,
             )
