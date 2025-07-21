@@ -236,7 +236,7 @@ def last_name(name: str) -> str:
     """Return the surname; keep prefixes like 'Di', 'De', 'Del', etc."""
     tokens = name.split()
     if len(tokens) >= 2 and tokens[-2].lower() in {
-        "di", "de", "del", "della", "d'", "da", "van", "von", "la", "le"
+        "di", "de", "del", "della", "d'", "da", "van", "von", "la", "le", "Di", "De", "Del", "Della", "D'", "Da", "Van", "Von", "La", "Le"
     }:
         return " ".join(tokens[-2:])           # 'Di Salvatore'
     return tokens[-1]                          # default: last token only
