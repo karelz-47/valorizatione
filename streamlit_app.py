@@ -383,7 +383,6 @@ def build_doc(
 
     today_str = date.today().strftime("%d/%m/%Y")
     r = doc.add_paragraph(f"{city}, {today_str}")
-    r.paragraph_format.left_indent = Inches(4)
     doc.add_paragraph("")   # blank
     
     # 2-line replacement for the subject block
