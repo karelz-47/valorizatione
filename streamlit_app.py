@@ -212,7 +212,7 @@ SALUTATION_ADDR = {
     "company": "Spett.le",
 }
 SALUTATION_GREET = {
-    "male": "Egregio Signore",
+    "male": "Egregio Signor",
     "female": "Gentilissima Signora",
     "company": "Spettabile",
 }
@@ -244,7 +244,7 @@ def last_name(name: str) -> str:
 def make_intro(recipient_type: str, client_name: str, calc_date: str) -> str:
     """
     Builds the greeting + first paragraph in one shot, e.g.
-    'Egregio Signore Rossi,\nsiamo con la presente … al 30/06/2025.'
+    'Egregio Signor Rossi,\nsiamo con la presente … al 30/06/2025.'
     """
     if recipient_type == "company":
         greet_name = client_name
