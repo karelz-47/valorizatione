@@ -232,6 +232,15 @@ EXPECTED_COLS = {"Item date", "Item name", "Item value"}
 def _fmt(amount: float) -> str:
     return format_currency(amount, "EUR", locale="it_IT")
 
+def last_name(name: str) -> str:
+    """Return the surname; keep prefixes like 'Di', 'De', 'Del', etc."""
+    tokens = name.split()
+    if len(tokens) >= 2 and tokens[-2].lower() in {
+        "di", "de", "del", "della", "d'", "da", "van", "von", "la", "le"
+    }:
+        return " ".join(tokens[-2:])           # 'Di Salvatore'
+    return tokens[-1]                          # default: last token only
+
 def make_intro(recipient_type: str, client_name: str, calc_date: str) -> str:
     """
     Builds the greeting + first paragraph in one shot, e.g.
@@ -239,8 +248,8 @@ def make_intro(recipient_type: str, client_name: str, calc_date: str) -> str:
     """
     if recipient_type == "company":
         greet_name = client_name
-    else:                               # pick the last token ⇒ surname
-        greet_name = client_name.split()[-1]
+    else:
+        greet_name = last_name(client_name)           # keeps 'Di Salvatore'
 
     greeting = f"{SALUTATION_GREET[recipient_type]} {greet_name},"
     body = (
