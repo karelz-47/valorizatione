@@ -10,7 +10,7 @@ import streamlit as st
 from babel.numbers import format_currency
 from docx import Document            # ← ADD THIS LINE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches
+from docx.shared import Inches, Pt   #  ← add Pt
 from typing import List
 
 # -------------------------------------------------------------------------
@@ -371,6 +371,7 @@ def build_doc(
 ) -> Document:
     
     doc = Document("Novis_hl_papier_IT_motyl_12072023_prev.docx")
+    doc.styles["Normal"].font.size = Pt(11)
 
     # address block
     prefix_short = SALUTATION_ADDR[recipient_type]
