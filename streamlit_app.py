@@ -141,7 +141,13 @@ ITEM_CONFIG = {
     },
   
     "Partial surrender": {
-         "label": "Riscatto (parziale) + Costi di riscatto",
+         "label": "Riscatto (parziale)",
+         "table": "T1",
+         "pos": 10,
+    },
+  
+    "Partial Surrender Calculated value": {
+         "label": "Riscatto (parziale)",
          "table": "T1",
          "pos": 10,
     },
