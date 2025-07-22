@@ -1,0 +1,7 @@
+[theme]
+base="light"
+primaryColor="#0056B3"            # brand blue
+backgroundColor="#FFFFFF"
+secondaryBackgroundColor="#F5F7FA"
+textColor="#1B1F23"
+font="sans serif"
