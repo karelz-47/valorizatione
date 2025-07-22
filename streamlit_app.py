@@ -494,6 +494,46 @@ def build_doc(
 
 def main():
     st.set_page_config(page_title="Generatore Lettera Valorizzazione", layout="centered")
+    
+    CUSTOM_CSS = """
+    <style>
+    /* Global max content width */
+    .block-container {
+          max-width: 900px;
+          padding-top: 2rem;
+          padding-bottom: 4rem;
+    }
+
+    /* Tighter label spacing */
+    label, .stTextInput label, .stSelectbox label {
+      font-weight: 600;
+    }
+
+    /* Section cards */
+    .section-card {
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.5rem;
+      border-radius: 0.5rem;
+      background: var(--secondary-background-color);
+      border: 1px solid rgba(0,0,0,.08);
+    }
+
+    /* Step title */
+    .section-card h3 {
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Currency cells in dataframes */
+    .dataframe-amount {
+      text-align: right !important;
+      font-variant-numeric: tabular-nums;
+    }
+    </style>
+    """
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+    
     st.title("📄 Generatore Lettera Valorizzazione")
 
     file = st.file_uploader("Carica file movimenti (XLS/XLSX)", type=["xls", "xlsx"])
