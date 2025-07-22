@@ -493,10 +493,10 @@ def build_doc(
 # -------------------------------------------------------------------------
 
 def main():
-   st.set_page_config(page_title="📄 Generatore Lettera Valorizzazione",
+    st.set_page_config(page_title="📄 Generatore Lettera Valorizzazione",
                    layout="wide",  # more horizontal breathing room
                    initial_sidebar_state="expanded")    
-   st.markdown(
+    st.markdown(
     """
     <style>
     /* Center page & tighten width */
