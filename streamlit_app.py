@@ -99,7 +99,13 @@ ITEM_CONFIG = {
         "table": "T1",
         "pos": 5,
     },
-  
+
+    "Paid Extra Premium": {
+        "label": "Pagamenti dei Premi identificati",
+        "table": "T1",
+        "pos": 5,
+    },
+    
     "Returned Premium": {
         "label": "Pagamenti dei Premi identificati",
         "table": "T1",
